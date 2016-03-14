@@ -9,17 +9,16 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 
 public class Cam1Coords {
-	long millis;
 	long c=0;
-	Mat mR,mRThreshold,mB,mG,mContours;
+	Mat mR,mB,mG,mContours;
 	int val = 100;
-	ImageFrame imageFrameR,imageFrameContours;
+	ImageFrame imageFrameContours;
     Mat frame = new Mat();
-    List<Mat> lRgb = new ArrayList<Mat>(3);
 	Mat mHierarchy = new Mat();
 	VideoCapture camera = new VideoCapture();
 	Mat myKernel = new Mat();
@@ -31,6 +30,9 @@ public class Cam1Coords {
 	MatOfPoint wrapper;
 	double maxArea = 0;
 	static ObtainCoordinates1 obtainCoordinates1;
+	Mat mDilatedMask = new Mat();
+	public Scalar mLowerBound = new Scalar(240,240,240);
+	public Scalar mUpperBound = new Scalar(255,255,255);
 	
 	public interface ObtainCoordinates1{
 		void getCoordinates1(int x,int y,long c);
@@ -39,9 +41,6 @@ public class Cam1Coords {
 	
 	public Cam1Coords(int cam)
 	{
-		mRThreshold = new Mat();
-		imageFrameR = new ImageFrame();
-	    imageFrameR.setTitle("mRThresholded");
 	    imageFrameContours=new ImageFrame();
 	    imageFrameContours.setTitle("Countours");
     	myKernel.create(6,6,CvType.CV_8S); // 8-bit single channel image
@@ -68,25 +67,17 @@ public class Cam1Coords {
 	    }
 	    while(true)
 	    {
-	    	millis = System.currentTimeMillis();
 	    	maxArea = 0;
-		    camera.read(frame);
-			Core.split(frame, lRgb);
-			mR=lRgb.get(2);
-			mB = lRgb.get(0);
-			mG = lRgb.get(1);
-			Core.subtract(mR, mG, mG);
-			Imgproc.threshold(mG, mG, 50, 255, 0);
-			Core.subtract(mR, mB, mB);
-			Imgproc.threshold(mB, mB, 50, 255, 0);
-			Core.bitwise_and(mG, mB, mRThreshold);
-		    Imgproc.erode(mRThreshold, mRThreshold, myKernel);
-		    Imgproc.dilate(mRThreshold, mRThreshold, myKernel);
-		    mContours=mRThreshold.clone();
+	    	camera.read(frame);
+	    	Core.inRange(frame, mLowerBound, mUpperBound, mDilatedMask);
+		    Imgproc.erode(mDilatedMask, mDilatedMask, myKernel);
+		    Imgproc.dilate(mDilatedMask, mDilatedMask, myKernel);
+		    mContours=mDilatedMask.clone();
 		    contours = new ArrayList<MatOfPoint>();
-		    Imgproc.findContours(mRThreshold, contours, mHierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+		    Imgproc.findContours(mDilatedMask, contours, mHierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 			each = contours.iterator();
 			tmpMatOfPoints = new MatOfPoint();
+			
 			//checking through each contour for tracing the red object
 			while (each.hasNext()) {
 				wrapper = each.next();

@@ -26,15 +26,14 @@ import digimodel.mars.iitr.Cam2Coords.ObtainCoordinates2;
 
 public class Test implements ObtainCoordinates1,ObtainCoordinates2{
 	long c1=0,c2=0;
+	public static RunningAvg avgX,avgY,avgZ;
+	public static int current = 0;
+	public static int newCount = 0,tracker=0;
 	int x1,x2,y1,y2;
 	Calculate calculate=new Calculate();
-	public static void main(String[] args) {
-		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+	public Test() {
 		//setting interfaces
-		Test test=new Test();
-		
-		test.initialize();
-		
+		initialize();
 		Thread thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -54,6 +53,9 @@ public class Test implements ObtainCoordinates1,ObtainCoordinates2{
 
 	private void initialize() {
 		// TODO Auto-generated method stub
+		avgX = new RunningAvg(5);
+		avgY = new RunningAvg(5);
+		avgZ = new RunningAvg(5);
 		Cam1Coords.setOnObtainPositionListener(this);
 		Cam2Coords.setOnObtainPositionListener(this);
 	}
